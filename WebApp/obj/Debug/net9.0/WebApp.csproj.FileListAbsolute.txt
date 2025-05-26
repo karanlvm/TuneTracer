@@ -54,8 +54,6 @@ C:\Code\TuneTracer\WebApp\obj\Debug\net9.0\WebApp.sourcelink.json
 C:\Code\TuneTracer\WebApp\obj\Debug\net9.0\scopedcss\Pages\Shared\_Layout.cshtml.rz.scp.css
 C:\Code\TuneTracer\WebApp\obj\Debug\net9.0\scopedcss\bundle\WebApp.styles.css
 C:\Code\TuneTracer\WebApp\obj\Debug\net9.0\scopedcss\projectbundle\WebApp.bundle.scp.css
-C:\Code\TuneTracer\WebApp\obj\Debug\net9.0\compressed\fspdjdrw69-b9sayid5wm.gz
-C:\Code\TuneTracer\WebApp\obj\Debug\net9.0\compressed\15ykilufbm-61n19gt1b8.gz
 C:\Code\TuneTracer\WebApp\obj\Debug\net9.0\compressed\5wk3qh7byk-xtxxf3hu2r.gz
 C:\Code\TuneTracer\WebApp\obj\Debug\net9.0\compressed\y1iq0brb9j-bqjiyaj88i.gz
 C:\Code\TuneTracer\WebApp\obj\Debug\net9.0\compressed\1w1et0ajvv-c2jlpeoesf.gz
@@ -128,3 +126,5 @@ C:\Code\TuneTracer\WebApp\obj\Debug\net9.0\refint\WebApp.dll
 C:\Code\TuneTracer\WebApp\obj\Debug\net9.0\WebApp.pdb
 C:\Code\TuneTracer\WebApp\obj\Debug\net9.0\WebApp.genruntimeconfig.cache
 C:\Code\TuneTracer\WebApp\obj\Debug\net9.0\ref\WebApp.dll
+C:\Code\TuneTracer\WebApp\obj\Debug\net9.0\compressed\fspdjdrw69-glkifxr6uk.gz
+C:\Code\TuneTracer\WebApp\obj\Debug\net9.0\compressed\15ykilufbm-61n19gt1b8.gz

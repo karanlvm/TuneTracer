@@ -4,35 +4,62 @@
     ViewData["Title"] = "Tune Tracer";
 }
 
-<h1>Tune Tracer</h1>
+<link rel="stylesheet" href="~/css/site.css" />
 
-<form method="post" enctype="multipart/form-data">
-  <input type="file" name="Snippet" accept=".wav" required />
-  <button type="submit">Identify</button>
-</form>
+<div class="container">
+  <h1 class="title">Tune Tracer</h1>
 
-@if (Model.MatchSongId != null)
+  <form method="post" enctype="multipart/form-data" class="upload-form">
+    <input type="file" asp-for="Snippet" accept=".wav" required />
+    <button type="submit">Identify</button>
+  </form>
+
+  @if (Model.Track != null)
+  {
+    <div class="result-card">
+      <div class="artwork">
+        <img src="@Model.AlbumImage" alt="Album Art" />
+      </div>
+      <div class="metadata">
+        <h2>@Model.Track.Name</h2>
+        <p><strong>Artist:</strong> @string.Join(", ", Model.Track.Artists.Select(a => a.Name))</p>
+        <p><strong>Album:</strong> @Model.AlbumName</p>
+        <p><strong>Release Date:</strong> @Model.ReleaseDate</p>
+        @if (Model.Genres?.Any() == true)
+        {
+          <p><strong>Genres:</strong> @string.Join(", ", Model.Genres)</p>
+        }
+        <p><strong>Time Offset:</strong> @Model.OffsetTime into the song</p>
+<p>
+  <strong>Fingerprints Matched:</strong> 
+  @Model.MatchStrength of @Model.QueryFingerprintCount</p> 
+
+        @if (!string.IsNullOrEmpty(Model.PreviewUrl))
+        {
+          <audio controls class="preview-player">
+            <source src="@Model.PreviewUrl" type="audio/mpeg" />
+            Your browser does not support the audio element.
+          </audio>
+        }
+        @if (Model.Track != null)
 {
-  <section style="margin-top:2rem">
-    <h2>Match Results</h2>
-    <p><strong>Song ID:</strong> @Model.MatchSongId</p>
-    <p><strong>Offset (frames):</strong> @Model.MatchOffset</p>
-    <p><strong>Votes:</strong> @Model.MatchVotes</p>
+  <!-- Spotify embed iframe -->
+  <div class="spotify-embed">
+    <iframe
+      src="https://open.spotify.com/embed/track/@Model.Track.Id"
+      width="100%" height="80" frameborder="0"
+      allowtransparency="true" allow="encrypted-media">
+    </iframe>
+  </div>
 
-    <h3>Spotify Metadata</h3>
-    @if (Model.Track != null)
-    {
-      <p><strong>Title:</strong> @Model.Track.Name</p>
-      <p><strong>Artist(s):</strong> @string.Join(", ", Model.Track.Artists.Select(a => a.Name))</p>
-      <p>
-        <a href="@Model.Track.ExternalUrls["spotify"]" target="_blank">
-          ▶ Listen on Spotify
-        </a>
-      </p>
-    }
-    else
-    {
-      <p>No metadata found on Spotify.</p>
-    }
-  </section>
+  <p>
+    <a href="@Model.Track.ExternalUrls["spotify"]" class="spotify-link" target="_blank">
+      ▶ Open in Spotify
+    </a>
+  </p>
 }
+
+      </div>
+    </div>
+  }
+</div>
