@@ -30,9 +30,10 @@ public class IndexModel : PageModel
     // Confidence calculation
     public int    QueryFingerprintCount { get; private set; }
     public string? OffsetTime            { get; private set; }
+    public int? Popularity           { get; private set; }
 
     // Spotify metadata
-    public FullTrack?    Track        { get; private set; }
+    public FullTrack? Track { get; private set; }
     public string?       AlbumName    { get; private set; }
     public string?       AlbumImage   { get; private set; }
     public string?       ReleaseDate  { get; private set; }
@@ -81,6 +82,7 @@ public class IndexModel : PageModel
         // 7) Populate additional metadata
         if (Track != null)
         {
+            Popularity = Track.Popularity;                // 0–100 scale
             AlbumName   = Track.Album.Name;
             ReleaseDate = Track.Album.ReleaseDate;
             AlbumImage  = Track.Album.Images
