@@ -1,0 +1,38 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Tune Tracer";
+}
+
+<h1>Tune Tracer</h1>
+
+<form method="post" enctype="multipart/form-data">
+  <input type="file" name="Snippet" accept=".wav" required />
+  <button type="submit">Identify</button>
+</form>
+
+@if (Model.MatchSongId != null)
+{
+  <section style="margin-top:2rem">
+    <h2>Match Results</h2>
+    <p><strong>Song ID:</strong> @Model.MatchSongId</p>
+    <p><strong>Offset (frames):</strong> @Model.MatchOffset</p>
+    <p><strong>Votes:</strong> @Model.MatchVotes</p>
+
+    <h3>Spotify Metadata</h3>
+    @if (Model.Track != null)
+    {
+      <p><strong>Title:</strong> @Model.Track.Name</p>
+      <p><strong>Artist(s):</strong> @string.Join(", ", Model.Track.Artists.Select(a => a.Name))</p>
+      <p>
+        <a href="@Model.Track.ExternalUrls["spotify"]" target="_blank">
+          ▶ Listen on Spotify
+        </a>
+      </p>
+    }
+    else
+    {
+      <p>No metadata found on Spotify.</p>
+    }
+  </section>
+}

@@ -39,3 +39,4 @@ C:\Code\TuneTracer\CoreApp\bin\Debug\net9.0\runtimes\win-x64\native\e_sqlite3.dl
 C:\Code\TuneTracer\CoreApp\bin\Debug\net9.0\runtimes\win-x86\native\e_sqlite3.dll
 C:\Code\TuneTracer\CoreApp\obj\Debug\net9.0\CoreApp.csproj.AssemblyReference.cache
 C:\Code\TuneTracer\CoreApp\obj\Debug\net9.0\CoreApp.csproj.Up2Date
+C:\Code\TuneTracer\CoreApp\obj\Debug\net9.0\CoreApp.sourcelink.json
