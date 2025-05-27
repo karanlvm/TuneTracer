@@ -1,0 +1,39 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Tune Tracer</title>
+  <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body>
+  <header>
+    <nav class="navbar">
+      <div class="container">
+        <a class="navbar-brand" asp-area="" asp-page="/Index">Tune Tracer</a>
+        <ul class="navbar-nav nav-right">
+          <li class="nav-item">
+            <a class="nav-link" href="https://github.com/karanvlm/TuneTracer" target="_blank">
+              Source Code
+            </a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+  </header>
+
+  <div class="content">
+    @RenderBody()
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      © @DateTime.Now.Year –
+      <a href="https://karanlvm.info" target="_blank">
+        Developed by Karan Vasudevamurthy
+      </a>
+    </div>
+  </footer>
+
+  @RenderSection("Scripts", required: false)
+</body>
+</html>

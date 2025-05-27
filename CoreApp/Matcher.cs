@@ -6,21 +6,30 @@ namespace CoreApp
 {
     public static class Matcher
     {
-        public static (string songId, int offset, int votes) Match(
-            WavFile queryWav,
-            Database db)
+        /// <summary>
+        /// Legacy entry: fingerprints the WAV internally then matches.
+        /// </summary>
+        public static (string songId, int offset, int votes)
+            Match(WavFile queryWav, Database db)
         {
-            // 1. Fingerprint the query
             var queryCodes = Fingerprinter.Extract(queryWav, "__QUERY__");
+            var (songId, offset, votes) = Match(queryCodes, db);
+            return (songId, offset, votes);
+        }
 
-            // 2. Lookup & vote
-            //    Key: (songId, deltaFrame) → count
+        /// <summary>
+        /// Match using precomputed query codes. Returns (songId, offset, votes).
+        /// </summary>
+        public static (string songId, int offset, int votes)
+            Match(List<(ulong code, string _, int frame)> queryCodes,
+                  Database db)
+        {
+            // vote histogram: (songId, deltaFrame) → count
             var votes = new Dictionary<(string, int), int>();
 
             foreach (var (code, _, qFrame) in queryCodes)
             {
-                var entries = db.Query(code);
-                foreach (var (songId, dbFrame) in entries)
+                foreach (var (songId, dbFrame) in db.Query(code))
                 {
                     int delta = qFrame - dbFrame;
                     var key = (songId, delta);
@@ -28,7 +37,6 @@ namespace CoreApp
                 }
             }
 
-            // 3. Pick top vote
             if (votes.Count == 0)
                 return ("<no match>", 0, 0);
 
