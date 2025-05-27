@@ -5,9 +5,9 @@ namespace CoreApp
 {
     public struct SpectralPeak
     {
-        public int Frame;     // time index
-        public int Bin;       // frequency index
-        public float Mag;     // magnitude
+        public int Frame;  // time index
+        public int Bin;    // frequency index
+        public float Mag;  // magnitude
 
         public SpectralPeak(int frame, int bin, float mag)
         {
@@ -20,34 +20,33 @@ namespace CoreApp
     public static class PeakDetector
     {
         /// <summary>
-        /// Detects local peaks in the spectrogram.
-        /// A peak at (f,t) is greater than all neighbours within nbhd x nbhd.
+        /// Detects local peaks in any 2D magnitude array.
         /// </summary>
         public static List<SpectralPeak> Detect(
-            Spectrogram spec,
+            float[,] mags,
             int nbhdSize = 3,
             float thresholdFactor = 1.5f
         )
         {
-            int F = spec.NumFrames;
-            int B = spec.NumBins;
-            var mags = spec.Magnitudes;
+            int F = mags.GetLength(0);
+            int B = mags.GetLength(1);
             var peaks = new List<SpectralPeak>();
 
             // Compute global mean & std
             double sum = 0, sumSq = 0;
             int N = F * B;
-            for (int i = 0; i < F; i++)
-                for (int j = 0; j < B; j++)
-                {
-                    sum   += mags[i, j];
-                    sumSq += mags[i, j] * mags[i, j];
-                }
-            double mean = sum / N;
-            double std  = Math.Sqrt(sumSq / N - mean * mean);
+            for (int t = 0; t < F; t++)
+            for (int f = 0; f < B; f++)
+            {
+                var v = mags[t, f];
+                sum   += v;
+                sumSq += v * v;
+            }
+
+            double mean   = sum / N;
+            double std    = Math.Sqrt(sumSq / N - mean * mean);
             double thresh = mean + thresholdFactor * std;
 
-            // Slide and find local maxima above threshold
             int r = nbhdSize;
             for (int t = r; t < F - r; t++)
             for (int f = r; f < B - r; f++)
@@ -72,6 +71,18 @@ namespace CoreApp
             }
 
             return peaks;
+        }
+
+        /// <summary>
+        /// Detects peaks in a Spectrogram by delegating to the float[,] overload.
+        /// </summary>
+        public static List<SpectralPeak> Detect(
+            Spectrogram spec,
+            int nbhdSize = 3,
+            float thresholdFactor = 1.5f
+        )
+        {
+            return Detect(spec.Magnitudes, nbhdSize, thresholdFactor);
         }
     }
 }

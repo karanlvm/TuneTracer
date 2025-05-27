@@ -7,104 +7,113 @@ namespace CoreApp
 {
     public static class Fingerprinter
     {
-        // Graph & quantization parameters
-        private const int MaxDeltaFrames = 50;    // e.g. ~1s if hop=1024@44.1kHz
-        private const int MaxDeltaBins   = 50;    // ~5kHz if bin=100Hz
-        private const int KNeighbors     = 5;     // edges per node
+        private const int MaxDeltaFrames = 50;
+        private const int MaxDeltaBins   = 50;
+        private const int KNeighbors     = 5;
 
-        // Quantization bins
         private const int TimeBins   = 16;
         private const int FreqBins   = 32;
         private const int WeightBins = 8;
 
-        // FNV-1a constants
         private const ulong FnvOffset = 0xcbf29ce484222325;
         private const ulong FnvPrime  = 0x00000100000001B3;
 
         public static List<(ulong code, string songId, int offset)> Extract(
             WavFile wav, string songId)
         {
-            var spec = new Spectrogram(wav, windowSize:2048, hopSize:1024);
+            var spec   = new Spectrogram(wav, windowSize:2048, hopSize:1024);
+            var chroma = new Chroma(spec);
 
-            // 1. Detect peaks
-            var peaks = PeakDetector.Detect(spec, nbhdSize:3, thresholdFactor:1.5f);
+            var harm = ExtractFromChannel(spec.Harmonic, chroma, songId);
+            var perc = ExtractFromChannel(spec.Percussive, chroma, songId);
+
+            var all = new List<(ulong,string,int)>(harm.Count + perc.Count);
+            all.AddRange(harm);
+            all.AddRange(perc);
+
+            Console.WriteLine($"    Harmonic codes: {harm.Count}, Percussive codes: {perc.Count}");
+            Console.WriteLine($"    Total codes: {all.Count}");
+            return all;
+        }
+
+        private static List<(ulong, string, int)> ExtractFromChannel(
+            float[,] mags, Chroma chroma, string songId)
+        {
+            // detect peaks in this channel
+            var peaks = PeakDetector.Detect(mags, nbhdSize: 3, thresholdFactor: 1.5f);
             if (peaks.Count == 0) return new();
 
-            // 2. Precompute max magnitude for weight normalization
-            float maxMag = 0f;
-            foreach (var v in spec.Magnitudes) 
-                if (v > maxMag) maxMag = v;
+            // normalize weight
+            float maxMag = peaks.Max(p => p.Mag);
 
-            var codes = new List<(ulong, string, int)>(peaks.Count);
+            var codes = new List<(ulong, string, int)>();
 
-            // 3. Build graph & extract descriptor per peak
-            for (int i = 0; i < peaks.Count; i++)
+            foreach (var pi in peaks)
             {
-                var pi = peaks[i];
-                // find neighbor peaks within Δt, Δf
-                var neighbors = new List<(int dt, int df, float mag)>();
-                for (int j = 0; j < peaks.Count; j++)
-                {
-                    if (i == j) continue;
-                    var pj = peaks[j];
-                    int dt = pj.Frame - pi.Frame;
-                    if (dt <= 0 || dt > MaxDeltaFrames) continue;
-                    int df = pj.Bin - pi.Bin;
-                    if (Math.Abs(df) > MaxDeltaBins) continue;
-                    neighbors.Add((dt, df, pj.Mag));
-                }
-
-                // pick top-K by magnitude product weight pi.Mag * pj.Mag
-                var topK = neighbors
+                // collect neighbors
+                var nbrs = peaks
+                    .Where(pj =>
+                        pj.Frame > pi.Frame &&
+                        pj.Frame - pi.Frame <= MaxDeltaFrames &&
+                        Math.Abs(pj.Bin - pi.Bin) <= MaxDeltaBins)
+                    .Select(pj => (dt: pj.Frame - pi.Frame, df: pj.Bin - pi.Bin, mag: pj.Mag))
                     .OrderByDescending(n => pi.Mag * n.mag)
                     .Take(KNeighbors)
                     .ToList();
+                if (nbrs.Count == 0) continue;
 
-                if (topK.Count == 0) continue;
+                // descriptor: for each neighbor 3 bytes (t,f,w) + 2 bytes (chroma1, chroma2)
+                byte[] desc = new byte[KNeighbors * 5];
 
-                // 4. Quantize & build byte descriptor
-                var desc = new byte[KNeighbors * 3];
+                // graph bytes
                 for (int n = 0; n < KNeighbors; n++)
                 {
-                    int baseIdx = n * 3;
-                    if (n < topK.Count)
+                    int idx = n * 5;
+                    if (n < nbrs.Count)
                     {
-                        var (dt, df, mag) = topK[n];
-                        // quantize
-                        byte tQ = (byte)(Math.Min(TimeBins - 1,
-                            (dt * (TimeBins - 1)) / MaxDeltaFrames));
-                        // shift df to [0..2*MaxDeltaBins]
+                        var (dt, df, mag) = nbrs[n];
+                        desc[idx + 0] = (byte)Math.Min(TimeBins - 1, (dt * (TimeBins - 1)) / MaxDeltaFrames);
                         int dfShift = df + MaxDeltaBins;
-                        byte fQ = (byte)(Math.Min(FreqBins - 1,
-                            (dfShift * (FreqBins - 1)) / (2 * MaxDeltaBins)));
-                        byte wQ = (byte)(Math.Min(WeightBins - 1,
-                            (int)((mag / maxMag) * (WeightBins - 1))));
-                        desc[baseIdx + 0] = tQ;
-                        desc[baseIdx + 1] = fQ;
-                        desc[baseIdx + 2] = wQ;
+                        desc[idx + 1] = (byte)Math.Min(FreqBins - 1, (dfShift * (FreqBins - 1)) / (2 * MaxDeltaBins));
+                        desc[idx + 2] = (byte)Math.Min(WeightBins - 1, (int)((mag / maxMag) * (WeightBins - 1)));
                     }
                     else
                     {
-                        // pad with zeros if fewer than KNeighbors
-                        desc[baseIdx + 0] = 0;
-                        desc[baseIdx + 1] = 0;
-                        desc[baseIdx + 2] = 0;
+                        desc[idx + 0] = 0;
+                        desc[idx + 1] = 0;
+                        desc[idx + 2] = 0;
                     }
                 }
 
-                // 5. Hash descriptor with FNV-1a → 64-bit code
-                ulong hash = FnvOffset;
-                for (int b = 0; b < desc.Length; b++)
+                // chroma bytes: extract 12-length vector for this frame
+                float[] cvec = new float[chroma.NumBins];
+                for (int c = 0; c < chroma.NumBins; c++)
+                    cvec[c] = chroma.Matrix[pi.Frame, c];
+
+                // find top two chroma bins
+                int c1 = Array.IndexOf(cvec, cvec.Max());
+                cvec[c1] = 0;
+                int c2 = Array.IndexOf(cvec, cvec.Max());
+
+                // fill chroma bytes into each neighbor slot
+                for (int n = 0; n < KNeighbors; n++)
                 {
-                    hash ^= desc[b];
+                    int idx = n * 5;
+                    desc[idx + 3] = (byte)c1;
+                    desc[idx + 4] = (byte)c2;
+                }
+
+                // FNV-1a hash
+                ulong hash = FnvOffset;
+                foreach (var b in desc)
+                {
+                    hash ^= b;
                     hash *= FnvPrime;
                 }
 
-                // 6. Record (code, songId, timeOffset = frame index)
                 codes.Add((hash, songId, pi.Frame));
             }
 
-            Console.WriteLine($"    Generated {codes.Count} codes");
             return codes;
         }
     }
